@@ -16,11 +16,7 @@ def execute(state_to_execute):
     while not state_queue.empty():
         m = state_queue.get()
         print m.__class__
-        if m.__class__ == Goto:
-            for m in m.state.macro_list:
-                state_queue.put(m)
-        else:
-            m.run()
+        m.run()
 
 
 class State:
@@ -138,6 +134,10 @@ class Captcha:
 class Goto:
     def __init__(self, state):
         self.state = state
+
+    def run(self):
+        for m in self.state.macro_list:
+            state_queue.put(m)
 
 
 class Log:
