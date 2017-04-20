@@ -52,7 +52,10 @@ class ClickPic:
             self.image, self.pos = [cv2.imread(base_directory + image, 0), (pos[0], pos[1])]
 
     def run(self):
-        p =  screen_detection(self.image, position=True)
+        p = screen_detection(self.image, position=True)
+        if p[0] < 0:
+            print "picture not detected"
+            return
         pyautogui.click(p[0] + self.pos[0], p[1] + self.pos[1])
 
 
@@ -166,3 +169,7 @@ class Timer:
 
     def run(self):
         self.t.start()
+
+class Comment:
+    def __init__(self, comment):
+        pass
