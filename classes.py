@@ -6,7 +6,7 @@ from methods import *
 state = None
 mouse_pos = pyautogui.position()
 lock = threading.Lock()
-
+timers = []
 
 class State:
     def __init__(self, macros=list()):
@@ -158,9 +158,13 @@ class Timer:
         self.current_state = state
         self.t = threading.Thread(target=self.timer)
         self.t.daemon = True
+        self.off = False
 
     def timer(self):
         time.sleep(self.time)
+        timers.remove(self)
+        if self.off:
+            return
         lock.acquire()
         state.on_break = self.macro
         state.loop_break = True
@@ -168,7 +172,18 @@ class Timer:
         # self.macro.run()
 
     def run(self):
+        timers.append(self)
         self.t.start()
+
+
+class TimerOff:
+    def __init__(self):
+        pass
+
+    def run(self):
+        for t in timers:
+            t.off = True
+
 
 class Comment:
     def __init__(self, comment):
