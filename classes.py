@@ -1,14 +1,18 @@
 import pyautogui
 import time
 import cv2
+import threading
 from methods import *
 state = None
 mouse_pos = pyautogui.position()
+lock = threading.Lock()
 
 
 class State:
-    def __init__(self, macros = []):
+    def __init__(self, macros=list()):
         self.macro_list = macros
+        self.loop_break = False
+        self.on_break = None
 
     def set(self, macros):
         self.macro_list = macros
@@ -18,9 +22,15 @@ class State:
 
     def execute(self):
         for m in self.macro_list:
-            print m.__class__
+            print str(m.__class__).replace("classes.", "")
+            if self.loop_break:
+                print "break"
+                if self.on_break:
+                    self.on_break.run()
+                break
             m.run()
             if m.__class__ == Goto:
+                print "end"
                 break
 
 
@@ -35,8 +45,11 @@ class Click:
 
 
 class ClickPic:
-    def __init__(self, image, pos=(0, 0)):
-        self.image, self.pos = [cv2.imread(base_directory + image, 0), (pos[0] * ratio[0], pos[1] * ratio[1])]
+    def __init__(self, image, pos=(0, 0), r=True):
+        if r:
+            self.image, self.pos = [cv2.imread(base_directory + image, 0), (pos[0] * ratio[0], pos[1] * ratio[1])]
+        else:
+            self.image, self.pos = [cv2.imread(base_directory + image, 0), (pos[0], pos[1])]
 
     def run(self):
         p =  screen_detection(self.image, position=True)
@@ -90,15 +103,17 @@ class Wait:
 
 class Match:
     def __init__(self, template, success, fail, threshold=0.75):
-        self.test = template
+        self.name = template
         self.template, self.success, self.fail, self.threshold = [template, success, fail, threshold]
         self.template = cv2.imread(base_directory + self.template, 0)
 
     def run(self):
-        print self.test
+        print "detecting", self.name,"..."
         if screen_detection(self.template, self.threshold):
+            print "Match Success"
             self.success.run()
         else:
+            print "Match Fail"
             self.fail.run()
 
 
@@ -114,7 +129,6 @@ class Captcha:
         capt_word = anti_captcha(img)
         pyautogui.click(214 * ratio[0], 1003 * ratio[1])
         pyautogui.typewrite(capt_word)
-
 
 
 class Goto:
@@ -133,3 +147,22 @@ class Log:
 
     def run(self):
         print self.string
+
+
+class Timer:
+    def __init__(self, time, macro):
+        self.time, self.macro = [time, macro]
+        self.current_state = state
+        self.t = threading.Thread(target=self.timer)
+        self.t.daemon = True
+
+    def timer(self):
+        time.sleep(self.time)
+        lock.acquire()
+        state.on_break = self.macro
+        state.loop_break = True
+        lock.release()
+        # self.macro.run()
+
+    def run(self):
+        self.t.start()
