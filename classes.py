@@ -2,11 +2,26 @@ import pyautogui
 import time
 import cv2
 import threading
+import Queue
 from methods import *
 state = None
-mouse_pos = pyautogui.position()
+state_queue = Queue.Queue()
 lock = threading.Lock()
 timers = []
+
+
+def execute(state_to_execute):
+    for m in state_to_execute.macro_list:
+        state_queue.put(m)
+    while not state_queue.empty():
+        m = state_queue.get()
+        print m.__class__
+        if m.__class__ == Goto:
+            for m in m.state.macro_list:
+                state_queue.put(m)
+        else:
+            m.run()
+
 
 class State:
     def __init__(self, macros=list()):
@@ -19,19 +34,6 @@ class State:
 
     def add(self, macro):
         self.macro_list.append(macro)
-
-    def execute(self):
-        for m in self.macro_list:
-            print str(m.__class__).replace("classes.", "")
-            if self.loop_break:
-                print "break"
-                if self.on_break:
-                    self.on_break.run()
-                break
-            m.run()
-            if m.__class__ == Goto:
-                print "end"
-                break
 
 
 class Click:
@@ -122,7 +124,6 @@ class Match:
 
 class Captcha:
     def __init__(self):
-        #self.success, self.fail = [success, fail]
         pass
 
     def run(self):
@@ -137,11 +138,6 @@ class Captcha:
 class Goto:
     def __init__(self, state):
         self.state = state
-
-    def run(self):
-        global state
-        state = self.state
-        state.execute()
 
 
 class Log:
