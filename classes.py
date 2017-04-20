@@ -34,6 +34,15 @@ class Click:
         pyautogui.click(self.x, self.y)
 
 
+class ClickPic:
+    def __init__(self, image, pos=(0, 0)):
+        self.image, self.pos = [cv2.imread(base_directory + image, 0), (pos[0] * ratio[0], pos[1] * ratio[1])]
+
+    def run(self):
+        p =  screen_detection(self.image, position=True)
+        pyautogui.click(p[0] + self.pos[0], p[1] + self.pos[1])
+
+
 class Drag:
     def __init__(self, x1, y1, x2, y2, r=True, d=0):
         if r:
