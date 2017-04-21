@@ -8,6 +8,7 @@ state = None
 state_queue = Queue.Queue()
 lock = threading.Lock()
 timers = []
+default = None
 
 
 def execute(state_to_execute):
