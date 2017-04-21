@@ -54,7 +54,7 @@ class ClickPic:
         if p[0] < 0:
             print "picture not detected"
             return
-        pyautogui.click(p[0] + self.pos[0], p[1] + self.pos[1])
+        pyautogui.click(p[0] * ratio[0] + self.pos[0], p[1] * ratio[1] + self.pos[1])
 
 
 class Drag:
@@ -136,8 +136,12 @@ class Goto:
         self.state = state
 
     def run(self):
+        with state_queue.mutex:
+            state_queue.queue.clear()
         for m in self.state.macro_list:
+            lock.acquire()
             state_queue.put(m)
+            lock.release()
 
 
 class Log:
@@ -154,6 +158,7 @@ class Timer:
         self.current_state = state
         self.t = threading.Thread(target=self.timer)
         self.t.daemon = True
+        self.running = False
         self.off = False
 
     def timer(self):
@@ -161,15 +166,18 @@ class Timer:
         timers.remove(self)
         if self.off:
             return
+        with state_queue.mutex:
+            state_queue.queue.clear()
         lock.acquire()
-        state.on_break = self.macro
-        state.loop_break = True
+        state_queue.put(self.macro)
         lock.release()
         # self.macro.run()
 
     def run(self):
         timers.append(self)
-        self.t.start()
+        if not self.running:
+            self.running = True
+            self.t.start()
 
 
 class TimerOff:
