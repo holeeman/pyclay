@@ -104,14 +104,25 @@ class Wait:
 
 
 class Match:
-    def __init__(self, template, success, fail, threshold=0.75):
-        self.name = template
+    def __init__(self, template, success, fail, threshold=0.75, t=0):
+        self.name, self.t = [template, t]
         self.template, self.success, self.fail, self.threshold = [template, success, fail, threshold]
         self.template = cv2.imread(base_directory + self.template, 0)
 
     def run(self):
-        print "detecting", self.name,"..."
-        if screen_detection(self.template, self.threshold):
+        print "detecting", self.name, "..."
+        current_time = time.time()
+        res = False
+
+        if self.t == 0:
+            res = True
+        while self.t > 0 and time.time() - current_time < self.t:
+            if screen_detection(self.template, self.threshold):
+                res = True
+                break
+            time.sleep(0.1)
+
+        if res:
             print "Match Success"
             self.success.run()
         else:
