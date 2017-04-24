@@ -34,13 +34,19 @@ class State:
 
 
 class Click:
-    def __init__(self, x, y, r=True):
+    def __init__(self, x, y, r=True, d=False):
         if r:
             self.x, self.y = [x * ratio[0], y * ratio[1]]
         else:
             self.x, self.y = [x, y]
+        self.d = d
+
     def run(self):
-        pyautogui.click(self.x, self.y)
+        if self.d:
+            pyautogui.doubleClick(self.x, self.y)
+        else:
+            pyautogui.click(self.x, self.y)
+
 
 
 class ClickPic:
