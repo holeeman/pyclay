@@ -121,7 +121,8 @@ class Match:
         res = False
 
         if self.t == 0:
-            res = True
+            if screen_detection(self.template, self.threshold):
+                res = True
         while self.t > 0 and time.time() - current_time < self.t:
             if screen_detection(self.template, self.threshold):
                 res = True
