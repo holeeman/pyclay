@@ -11,7 +11,11 @@ timers = []
 default = None
 
 
-def execute(state_to_execute):
+def execute(state_to_execute, state_on_execute=None):
+    if state_on_execute:
+        State.on_execute= state_on_execute.macro_list
+    for m in State.on_execute:
+        state_queue.put(m)
     for m in state_to_execute.macro_list:
         state_queue.put(m)
     while not state_queue.empty():
@@ -21,6 +25,8 @@ def execute(state_to_execute):
 
 
 class State:
+    on_execute = []
+
     def __init__(self, macros=list()):
         self.macro_list = macros
         self.loop_break = False
@@ -48,16 +54,16 @@ class Click:
             pyautogui.click(self.x, self.y)
 
 
-
 class ClickPic:
-    def __init__(self, image, pos=(0, 0), r=True):
+    def __init__(self, image, pos=(0, 0), r=True, threshold=0.9):
         if r:
             self.image, self.pos = [cv2.imread(base_directory + image, 0), (pos[0] * ratio[0], pos[1] * ratio[1])]
         else:
             self.image, self.pos = [cv2.imread(base_directory + image, 0), (pos[0], pos[1])]
+        self.thres = threshold
 
     def run(self):
-        p = screen_detection(self.image, position=True)
+        p = screen_detection(self.image, threshold=self.thres, position=True)
         if p[0] < 0:
             print "picture not detected"
             return
@@ -151,16 +157,18 @@ class Captcha:
 
 
 class Goto:
-    def __init__(self, state):
-        self.state = state
+    def __init__(self, state_to_execute):
+        self.state = state_to_execute
 
     def run(self):
         with state_queue.mutex:
             state_queue.queue.clear()
-        for m in self.state.macro_list:
-            lock.acquire()
-            state_queue.put(m)
-            lock.release()
+
+        with lock:
+            for m in State.on_execute:
+                state_queue.put(m)
+            for m in self.state.macro_list:
+                state_queue.put(m)
 
 
 class Log:
