@@ -12,7 +12,7 @@ default = None
 
 
 def execute(state_to_execute, state_on_execute=None):
-    if state_on_execute:
+    if state_on_execute and not state_to_execute.ignore:
         State.on_execute= state_on_execute.macro_list
     for m in State.on_execute:
         state_queue.put(m)
@@ -27,10 +27,9 @@ def execute(state_to_execute, state_on_execute=None):
 class State:
     on_execute = []
 
-    def __init__(self, macros=list()):
+    def __init__(self, macros=list(), ignore=False):
         self.macro_list = macros
-        self.loop_break = False
-        self.on_break = None
+        self.ignore = ignore
 
     def set(self, macros):
         self.macro_list = macros
@@ -165,8 +164,9 @@ class Goto:
             state_queue.queue.clear()
 
         with lock:
-            for m in State.on_execute:
-                state_queue.put(m)
+            if not self.state.ignore:
+                for m in State.on_execute:
+                    state_queue.put(m)
             for m in self.state.macro_list:
                 state_queue.put(m)
 
@@ -219,3 +219,14 @@ class TimerOff:
 class Comment:
     def __init__(self, comment):
         pass
+
+    def run(self):
+        pass
+
+
+class Execute:
+    def __init__(self, function):
+        self.function = function
+
+    def run(self):
+        self.function()
