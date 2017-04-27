@@ -1,5 +1,5 @@
 import pyautogui
-import time
+import time as pytimer
 import cv2
 import threading
 import Queue
@@ -9,6 +9,8 @@ state_queue = Queue.Queue()
 lock = threading.Lock()
 timers = []
 default = None
+on_start = None
+ratio = [1, 1]
 
 
 def execute(state_to_execute, state_on_execute=None):
@@ -54,7 +56,7 @@ class Click:
 
 
 class ClickPic:
-    def __init__(self, image, pos=(0, 0), r=True, threshold=0.9):
+    def __init__(self, image, pos=(0, 0), r=True, threshold=0.7):
         if r:
             self.image, self.pos = [cv2.imread(base_directory + image, 0), (pos[0] * ratio[0], pos[1] * ratio[1])]
         else:
@@ -63,10 +65,11 @@ class ClickPic:
 
     def run(self):
         p = screen_detection(self.image, threshold=self.thres, position=True)
+        print p
         if p[0] < 0:
             print "picture not detected"
             return
-        pyautogui.click(p[0] * ratio[0] + self.pos[0], p[1] * ratio[1] + self.pos[1])
+        pyautogui.click(window_x + p[0] * ratio[0] + self.pos[0], window_y + p[1] * ratio[1] + self.pos[1])
 
 
 class Drag:
@@ -111,7 +114,7 @@ class Wait:
         self.time = time
 
     def run(self):
-        time.sleep(self.time)
+        pytimer.sleep(self.time)
 
 
 class Match:
@@ -122,17 +125,17 @@ class Match:
 
     def run(self):
         print "detecting", self.name, "..."
-        current_time = time.time()
+        current_time = pytimer.time()
         res = False
 
         if self.t == 0:
             if screen_detection(self.template, self.threshold):
                 res = True
-        while self.t > 0 and time.time() - current_time < self.t:
+        while self.t > 0 and pytimer.time() - current_time < self.t:
             if screen_detection(self.template, self.threshold):
                 res = True
                 break
-            time.sleep(0.1)
+            pytimer.sleep(0.1)
 
         if res:
             print "Match Success"
@@ -140,19 +143,6 @@ class Match:
         else:
             print "Match Fail"
             self.fail.run()
-
-
-class Captcha:
-    def __init__(self):
-        pass
-
-    def run(self):
-        img = ImageGrab.grab([window_x + 98 * ratio[0], window_y + 835 * ratio[1], window_x + 536 * ratio[0], window_y + 947 * ratio[1]])
-        img = np.array(img, dtype=np.uint8)
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        capt_word = anti_captcha(img)
-        pyautogui.click(214 * ratio[0], 1003 * ratio[1])
-        pyautogui.typewrite(capt_word)
 
 
 class Goto:
@@ -189,7 +179,7 @@ class Timer:
         self.off = False
 
     def timer(self):
-        time.sleep(self.time)
+        pytimer.sleep(self.time)
         timers.remove(self)
         if self.off:
             return
